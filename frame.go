@@ -11,6 +11,12 @@ import (
 	"unsafe"
 )
 
+var pixelFormatSubsampleRatio = map[PixelFormat]image.YCbCrSubsampleRatio{
+	YUV420P:  image.YCbCrSubsampleRatio420,
+	YUVJ444P: image.YCbCrSubsampleRatio444,
+	YUV444P:  image.YCbCrSubsampleRatio444,
+}
+
 type Frame C.struct_AVFrame
 
 func NewFrame(width, height int, pixFmt PixelFormat) (*Frame, error) {
@@ -44,17 +50,57 @@ func (frame *Frame) MakeWritable() error {
 }
 
 func (frame *Frame) FillRGBA(img *image.RGBA) error {
+	if PixelFormat(frame.format) != RGBA {
+		return errors.New("pixel format of frame is not RGBA")
+	}
+
 	if !img.Bounds().Eq(image.Rect(0, 0, int(frame.ctype().width), int(frame.ctype().height))) {
 		return errors.New("image resolution not equal frame resolution")
 	}
 
 	ok := 0 <= int(C.av_image_fill_arrays(
-		&(frame.ctype().data[0]),
-		&(frame.ctype().linesize[0]),
+		&(frame.data[0]),
+		&(frame.linesize[0]),
 		(*C.uint8_t)(&img.Pix[0]),
-		C.AV_PIX_FMT_RGBA,
-		frame.ctype().width,
-		frame.ctype().height,
+		int32(frame.format),
+		frame.width,
+		frame.height,
+		1,
+	))
+
+	if !ok {
+		return errors.New("Could not fill raw picture buffer")
+	}
+
+	return nil
+}
+
+func (frame *Frame) FillYCbCr(img *image.YCbCr) error {
+	ratio, ok := pixelFormatSubsampleRatio[PixelFormat(frame.format)]
+	if !ok {
+		return errors.New("pixel format of frame is not YCbCr")
+	}
+
+	if ratio != img.SubsampleRatio {
+		return errors.New("subsample ration of frame not equal image")
+	}
+
+	if !img.Bounds().Eq(image.Rect(0, 0, int(frame.ctype().width), int(frame.ctype().height))) {
+		return errors.New("image resolution not equal frame resolution")
+	}
+
+	data := make([]uint8, len(img.Y)+len(img.Cb)+len(img.Cr))
+	copy(data[:len(img.Y)], img.Y)
+	copy(data[len(img.Y):len(img.Y)+len(img.Cb)], img.Cb)
+	copy(data[len(img.Y)+len(img.Cb):], img.Cr)
+
+	ok = 0 <= int(C.av_image_fill_arrays(
+		&(frame.data[0]),
+		&(frame.linesize[0]),
+		(*C.uint8_t)(&(data[0])),
+		int32(frame.format),
+		frame.width,
+		frame.height,
 		1,
 	))
 

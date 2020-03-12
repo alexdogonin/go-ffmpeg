@@ -37,8 +37,8 @@ func NewCodecContext(codec *Codec, width, height int, pixFmt PixelFormat, opts .
 
 	const defaultFramerate = 25
 
-	context.width = width
-	context.height = height
+	context.width = C.int(width)
+	context.height = C.int(height)
 	context.time_base = C.AVRational{C.int(1), C.int(defaultFramerate)}
 	context.framerate = C.AVRational{C.int(defaultFramerate), C.int(1)}
 	context.gop_size = C.int(10)

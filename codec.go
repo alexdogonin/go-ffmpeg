@@ -1,4 +1,4 @@
-package go-ffmpeg
+package ffmpeg
 
 //#include <libavcodec/avcodec.h>
 import "C"

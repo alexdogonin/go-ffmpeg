@@ -32,7 +32,7 @@ type CodecContextOpt func(codecCtx *CodecContext)
 	480p       | 2.5 Mbps            | 4 Mbps
 	360p       | 1 Mbps              | 1.5 Mbps
 */
-func NewCodecContext(codec *Codec, width, height int, opts ...CodecContextOpt) (*CodecContext, error) {
+func NewCodecContext(codec *Codec, width, height int, pixFmt PixelFormat, opts ...CodecContextOpt) (*CodecContext, error) {
 	context := C.avcodec_alloc_context3((*C.struct_AVCodec)(codec))
 
 	const defaultFramerate = 25
@@ -42,7 +42,7 @@ func NewCodecContext(codec *Codec, width, height int, opts ...CodecContextOpt) (
 	context.time_base = C.AVRational{C.int(1), C.int(defaultFramerate)}
 	context.framerate = C.AVRational{C.int(defaultFramerate), C.int(1)}
 	context.gop_size = C.int(10)
-	context.pix_fmt = YUV420P.ctype()
+	context.pix_fmt = pixFmt.ctype()
 
 	context.bit_rate = C.long(calculateBitrate(int(context.height), int(context.framerate.num)))
 

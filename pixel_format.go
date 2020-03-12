@@ -1,11 +1,13 @@
 package ffmpeg
 
-//#include <libavcodec/avcodec.h>
+//#include <libavutil/pixfmt.h>
 import "C"
 
 const (
-	YUV420P PixelFormat = C.AV_PIX_FMT_YUV420P
-	RGBA    PixelFormat = C.AV_PIX_FMT_RGBA
+	RGBA     PixelFormat = C.AV_PIX_FMT_RGBA
+	YUV420P  PixelFormat = C.AV_PIX_FMT_YUV420P
+	YUVJ444P PixelFormat = C.AV_PIX_FMT_YUVJ444P
+	YUV444P  PixelFormat = C.AV_PIX_FMT_YUV444P
 )
 
 type PixelFormat C.enum_AVPixelFormat

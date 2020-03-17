@@ -30,7 +30,9 @@ func main() {
 		log.Fatalf("find codec %q error, %s", err)
 	}
 
-	codecCtx, err := ffmpeg.NewCodecContext(codec, videoWidth, videoHeight, ffmpeg.YUV420P)
+	codecCtx, err := ffmpeg.NewCodecContext(codec, videoWidth, videoHeight, ffmpeg.YUV420P,
+		ffmpeg.WithGopSize(10),
+	)
 	if err != nil {
 		log.Fatalf("initialize codec context error, %s", err)
 	}

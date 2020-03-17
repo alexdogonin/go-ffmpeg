@@ -121,6 +121,12 @@ func WithPixFmt(pixFmt PixelFormat) CodecContextOpt {
 	}
 }
 
+func WithGopSize(gopSize int) CodecContextOpt {
+	return func(codecCtxt *CodecContext) {
+		codecCtxt.ctype().gop_size = C.int(gopSize)
+	}
+}
+
 func calculateBitrate(height, framerate int) int {
 	switch framerate {
 	case 24, 25, 30:

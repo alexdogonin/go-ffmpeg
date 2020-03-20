@@ -1,0 +1,47 @@
+package ffmpeg
+
+//#import <libavformat/avformat.h>
+import "C"
+
+import (
+	"errors"
+	"unsafe"
+)
+
+type FormatContext C.struct_AVFormatContext
+
+func NewFormatContext(filename string, oFormat *OutputFormat) (*FormatContext, error) {
+	context := (*FormatContext)(unsafe.Pointer(C.avformat_alloc_context()))
+
+	if context == nil {
+		return nil, errors.New("create format context error")
+	}
+
+	context.filename = C.CString(filename)
+	context.url = C.CString(filename)
+
+	context.oformat = oFormat.ctype()
+
+	if context.oformat.priv_data_size == C.int(0) {
+		context.priv_data = nil
+
+		return context, nil
+	}
+
+	context.priv_data = C.av_mallocz(context.oformat.priv_data_size)
+	if context.oformat.priv_class {
+		*((**C.struct_AVClass)(context.priv_data)) = context.oformat.priv_class
+
+		C.av_opt_set_defaults(context.priv_data)
+	}
+
+	return context, nil
+}
+
+func (context *FormatContext) Release() {
+	C.avformat_free_context(context.ctype())
+}
+
+func (context *FormatContext) ctype() *C.struct_AVFormatContext {
+	return (*C.struct_AVFormatContext)(unsafe.Pointer(context))
+}

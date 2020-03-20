@@ -1,6 +1,6 @@
 package ffmpeg
 
-//#import <libavformat/avformat.h>
+//#include <libavformat/avformat.h>
 import "C"
 
 import (
@@ -22,6 +22,10 @@ func NewStream(formatContext *FormatContext) (*Stream, error) {
 	stream.time_base = C.struct_AVRational{1, 25}
 
 	return stream, nil
+}
+
+func (s *Stream) SetCodecParameters(parms *CodecParameters) {
+	*(s.ctype().codecpar) = *(parms.ctype())
 }
 
 func (s *Stream) ctype() *C.struct_AVStream {

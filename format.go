@@ -31,6 +31,14 @@ func GuessFormat(name string) (*OutputFormat, error) {
 	return format, nil
 }
 
+func (format *OutputFormat) VideoCodec() CodecID {
+	return CodecID(format.ctype().video_codec)
+}
+
+func (format *OutputFormat) AudioCodec() CodecID {
+	return CodecID(format.ctype().audio_codec)
+}
+
 func (format *OutputFormat) ctype() *C.struct_AVOutputFormat {
 	return (*C.struct_AVOutputFormat)(unsafe.Pointer(format))
 }

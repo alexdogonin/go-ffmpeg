@@ -1,10 +1,11 @@
 package ffmpeg
 
-//#import <libavformat/avformat.h>
+//#include <libavformat/avformat.h>
 import "C"
 
 import (
 	"errors"
+	"fmt"
 	"unsafe"
 )
 
@@ -40,6 +41,23 @@ func NewFormatContext(filename string, oFormat *OutputFormat) (*FormatContext, e
 
 func (context *FormatContext) Release() {
 	C.avformat_free_context(context.ctype())
+}
+
+func (context *FormatContext) DumpFormat() {
+	C.av_dump_format(context.ctype(), 0, context.ctype().filename, 1)
+}
+
+func (context *FormatContext) OpenOutput() error {
+	if (context.ctype().oformat.flags & C.AVFMT_NOFILE) != 0 {
+		return nil
+	}
+
+	ret := C.avio_open(&(context.ctype().pb), context.ctype().filename, C.AVIO_FLAG_WRITE)
+	if ret < 0 {
+		return fmt.Errorf("could not open %q: %q", context.ctype().filename, C.av_err2str(C.int(ret)))
+	}
+
+	return nil
 }
 
 func (context *FormatContext) ctype() *C.struct_AVFormatContext {

@@ -91,6 +91,14 @@ func (context *CodecContext) ReceivePacket(dest *Packet) error {
 	return nil
 }
 
+func (context *CodecContext) CodecParameters() *CodecParameters {
+	parms := &CodecParameters{}
+
+	C.avcodec_parameters_from_context(parms, context.ctype())
+
+	return parms
+}
+
 func (context *CodecContext) ctype() *C.struct_AVCodecContext {
 	return (*C.struct_AVCodecContext)(unsafe.Pointer(context))
 }

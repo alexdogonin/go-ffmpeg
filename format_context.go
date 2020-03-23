@@ -60,6 +60,28 @@ func (context *FormatContext) OpenOutput() error {
 	return nil
 }
 
+func (context *FormatContext) CloseOutput() {
+	C.avio_closep(context.ctype().pb)
+}
+
+func (context *FormatContext) WriteHeader(opts map[string]string) error {
+	var opt C.struct_AVDictionary
+	for k, v := range opts {
+		C.av_dict_set(&opt, C.CString(k), C.CString(v), 0)
+	}
+
+	ret := C.avformat_write_header(context.ctype(), &opt)
+	if int(ret) < 0 {
+		return fmt.Errorf("write header error, %s", C.av_err2str(ret))
+	}
+
+	return nil
+}
+
+func (context *FormatContext) WriteTrailer() {
+	C.av_write_trailer(context.ctype())
+}
+
 func (context *FormatContext) ctype() *C.struct_AVFormatContext {
 	return (*C.struct_AVFormatContext)(unsafe.Pointer(context))
 }

@@ -1,6 +1,6 @@
 package ffmpeg
 
-//#import <libavformat/avformat.h>
+//#include <libavformat/avformat.h>
 import "C"
 
 import (

@@ -18,7 +18,7 @@ func NewStream(formatContext *FormatContext) (*Stream, error) {
 		return nil, errors.New("create stream error")
 	}
 
-	stream.id = formatContext.nb_streams - 1
+	stream.id = C.int(formatContext.nb_streams - 1)
 	stream.time_base = C.struct_AVRational{1, 25}
 
 	return stream, nil

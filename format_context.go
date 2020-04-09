@@ -30,23 +30,20 @@ func NewFormatContext(filename string, oFormat *OutputFormat) (*FormatContext, e
 		return nil, errors.New("create format context error")
 	}
 
-	// context.filename = C.CString(filename)
 	C.av_strlcpy(&(context.ctype().filename[0]), C.CString(filename), C.ulong(len(filename)+1))
-	context.url = &(context.ctype().filename[0])
+	context.url = C.av_strdup(C.CString(filename))
 
 	context.oformat = oFormat.ctype()
 
-	if context.oformat.priv_data_size == C.int(0) {
-		context.priv_data = nil
+	context.priv_data = nil
+	if context.oformat.priv_data_size != C.int(0) {
+		context.priv_data = C.av_mallocz(C.ulong(context.oformat.priv_data_size))
 
-		return context, nil
-	}
+		if context.oformat.priv_class != nil {
+			*((**C.struct_AVClass)(context.priv_data)) = context.oformat.priv_class
 
-	context.priv_data = C.av_mallocz(C.ulong(context.oformat.priv_data_size))
-	if context.oformat.priv_class != nil {
-		*((**C.struct_AVClass)(context.priv_data)) = context.oformat.priv_class
-
-		C.av_opt_set_defaults(context.priv_data)
+			C.av_opt_set_defaults(context.priv_data)
+		}
 	}
 
 	return context, nil

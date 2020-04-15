@@ -5,15 +5,15 @@ Go binding to FFmpeg
 
 ## Install ffpeg libraries
 
-required versions:
-libavcodec >= 58
-libavformat >= 58
-libavutil >= 56
-libswresample >= 3
-libswscale >= 5
+#### required versions  
+libavcodec >= 58  
+libavformat >= 58  
+libavutil >= 56  
+libswresample >= 3  
+libswscale >= 5  
 
 ### Solus 
-eopkg it ffmpeg-devel
+eopkg it pkg-config ffmpeg-devel
 
 ### Ubuntu 
 apt install pkg-config libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev

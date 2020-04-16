@@ -9,19 +9,25 @@ Go binding to FFmpeg
 
 #### Solus
 
+```bash
 eopkg it pkg-config ffmpeg-devel
+```
 
 #### Ubuntu
 
+```bash
 apt install pkg-config libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev
+```
 
 #### Source code
 
+```bash
 git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
 cd ffmpeg
 ./configure
 make
 make install
+```
 
 #### Required versions
 
@@ -33,7 +39,9 @@ libswscale >= 5
 
 ## go-ffmpeg installation
 
+```bash
 go get github.com/alexdogonin/go-ffmpeg
+```
 
 ## Usage
 

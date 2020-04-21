@@ -53,7 +53,8 @@ see [examples](https://github.com/alexdogonin/go-ffmpeg/tree/master/examples) di
   - [ ] encoding - generate video from image and audio track
   - [ ] decoding - generate number of images from video
   - [ ] rescaling video
-  - [ ] convert video formats
+  - [ ] resampling audio
+  - [ ] convert formats
 - [ ] refactor code, reducing type dependencies among themselves
 - [ ] restructure code to use go types instead FFmpeg types everywheare it possible (e.g. AVIOContext -> io.Writer)
 - [ ] add comprehensive documentation

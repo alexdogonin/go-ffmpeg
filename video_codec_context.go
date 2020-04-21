@@ -16,8 +16,6 @@ var (
 
 type VideoCodecContext C.struct_AVCodecContext
 
-type VideoCodecContextOpt func(*VideoCodecContext)
-
 /*NewCodecContext creates new codec context and try to open codec
 
 	Recomended bitrates (https://support.google.com/youtube/answer/1722171?hl=en):
@@ -103,38 +101,6 @@ func (context *VideoCodecContext) ctype() *C.struct_AVCodecContext {
 	return (*C.struct_AVCodecContext)(unsafe.Pointer(context))
 }
 
-func WithVideoBitrate(bitrate int) VideoCodecContextOpt {
-	return func(codecCtx *VideoCodecContext) {
-		codecCtx.ctype().bit_rate = C.long(bitrate)
-	}
-}
-
-func WithResolution(width, height int) VideoCodecContextOpt {
-	return func(codecCtx *VideoCodecContext) {
-		codecCtx.ctype().width = C.int(width)
-		codecCtx.ctype().height = C.int(height)
-	}
-}
-
-func WithFramerate(framerate int) VideoCodecContextOpt {
-	return func(codecCtx *VideoCodecContext) {
-		codecCtx.ctype().time_base = C.AVRational{C.int(1), C.int(framerate)}
-		codecCtx.ctype().framerate = C.AVRational{C.int(framerate), C.int(1)}
-	}
-}
-
-func WithPixFmt(pixFmt PixelFormat) VideoCodecContextOpt {
-	return func(codecCtx *VideoCodecContext) {
-		codecCtx.ctype().pix_fmt = pixFmt.ctype()
-	}
-}
-
-func WithGopSize(gopSize int) VideoCodecContextOpt {
-	return func(codecCtxt *VideoCodecContext) {
-		codecCtxt.ctype().gop_size = C.int(gopSize)
-	}
-}
-
 func calculateBitrate(height, framerate int) int {
 	switch framerate {
 	case 24, 25, 30:
@@ -173,61 +139,4 @@ func calculateBitrate(height, framerate int) int {
 	coef := 6
 
 	return width * height * framerate / coef
-}
-
-type AudioCodecContextOption func(*AudioCodecContext)
-
-func WithAudioBitrate(bitrate int) AudioCodecContextOption {
-	return func(context *AudioCodecContext) {
-		context.ctype().bit_rate = C.long(bitrate)
-	}
-}
-
-func WithSampleRate(sampleRate int) AudioCodecContextOption {
-	return func(context *AudioCodecContext) {
-		context.ctype().sample_rate = C.int(sampleRate)
-	}
-}
-
-func WithChannelLayout(layout int) AudioCodecContextOption {
-	return func(context *AudioCodecContext) {
-		context.ctype().channel_layout = C.ulong(layout)
-	}
-}
-
-func WithChannels(channels int) AudioCodecContextOption {
-	return func(context *AudioCodecContext) {
-		context.ctype().channels = C.int(channels)
-	}
-}
-
-func WithSampleFormat(sampleFmt SampleFormat) AudioCodecContextOption {
-	return func(context *AudioCodecContext) {
-		context.ctype().sample_fmt = sampleFmt.ctype()
-	}
-}
-
-type AudioCodecContext C.struct_AVCodecContext
-
-func NewAudioCodecContext(codec *Codec, opts ...AudioCodecContextOption) (*AudioCodecContext, error) {
-	c := C.avcodec_alloc_context3((*C.struct_AVCodec)(codec))
-
-	context := (*AudioCodecContext)(unsafe.Pointer(c))
-	for _, opt := range opts {
-		opt(context)
-	}
-
-	if ok := int(C.avcodec_open2(c, (*C.struct_AVCodec)(codec), nil)) == 0; !ok {
-		return nil, errors.New("codec open error")
-	}
-
-	return context, nil
-}
-
-func (context *AudioCodecContext) Release() {
-	C.avcodec_free_context((**C.struct_AVCodecContext)(unsafe.Pointer(&context)))
-}
-
-func (context *AudioCodecContext) ctype() *C.struct_AVCodecContext {
-	return (*C.struct_AVCodecContext)(unsafe.Pointer(context))
 }

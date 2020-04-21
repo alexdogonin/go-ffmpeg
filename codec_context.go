@@ -16,7 +16,7 @@ var (
 
 type VideoCodecContext C.struct_AVCodecContext
 
-type VideoCodecContextOpt func(codecCtx *VideoCodecContext)
+type VideoCodecContextOpt func(*VideoCodecContext)
 
 /*NewCodecContext creates new codec context and try to open codec
 
@@ -103,7 +103,7 @@ func (context *VideoCodecContext) ctype() *C.struct_AVCodecContext {
 	return (*C.struct_AVCodecContext)(unsafe.Pointer(context))
 }
 
-func WithBitrate(bitrate int) VideoCodecContextOpt {
+func WithVideoBitrate(bitrate int) VideoCodecContextOpt {
 	return func(codecCtx *VideoCodecContext) {
 		codecCtx.ctype().bit_rate = C.long(bitrate)
 	}
@@ -173,4 +173,61 @@ func calculateBitrate(height, framerate int) int {
 	coef := 6
 
 	return width * height * framerate / coef
+}
+
+type AudioCodecContextOption func(*AudioCodecContext)
+
+func WithAudioBitrate(bitrate int) AudioCodecContextOption {
+	return func(context *AudioCodecContext) {
+		context.ctype().bit_rate = C.long(bitrate)
+	}
+}
+
+func WithSampleRate(sampleRate int) AudioCodecContextOption {
+	return func(context *AudioCodecContext) {
+		context.ctype().sample_rate = C.int(sampleRate)
+	}
+}
+
+func WithChannelLayout(layout int) AudioCodecContextOption {
+	return func(context *AudioCodecContext) {
+		context.ctype().channel_layout = C.ulong(layout)
+	}
+}
+
+func WithChannels(channels int) AudioCodecContextOption {
+	return func(context *AudioCodecContext) {
+		context.ctype().channels = C.int(channels)
+	}
+}
+
+func WithSampleFormat(sampleFmt SampleFormat) AudioCodecContextOption {
+	return func(context *AudioCodecContext) {
+		context.ctype().sample_fmt = sampleFmt.ctype()
+	}
+}
+
+type AudioCodecContext C.struct_AVCodecContext
+
+func NewAudioCodecContext(codec *Codec, opts ...AudioCodecContextOption) (*AudioCodecContext, error) {
+	c := C.avcodec_alloc_context3((*C.struct_AVCodec)(codec))
+
+	context := (*AudioCodecContext)(unsafe.Pointer(c))
+	for _, opt := range opts {
+		opt(context)
+	}
+
+	if ok := int(C.avcodec_open2(c, (*C.struct_AVCodec)(codec), nil)) == 0; !ok {
+		return nil, errors.New("codec open error")
+	}
+
+	return context, nil
+}
+
+func (context *AudioCodecContext) Release() {
+	C.avcodec_free_context((**C.struct_AVCodecContext)(unsafe.Pointer(&context)))
+}
+
+func (context *AudioCodecContext) ctype() *C.struct_AVCodecContext {
+	return (*C.struct_AVCodecContext)(unsafe.Pointer(context))
 }

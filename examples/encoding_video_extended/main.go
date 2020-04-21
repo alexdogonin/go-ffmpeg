@@ -50,7 +50,7 @@ func main() {
 	codecParms := codecContext.CodecParameters()
 	stream.SetCodecParameters(codecParms)
 
-	frame, err := ffmpeg.NewFrame(width, height, pixelFormat)
+	frame, err := ffmpeg.NewVideoFrame(width, height, pixelFormat)
 	if err != nil {
 		log.Fatalf("init frame error, %s", err)
 	}

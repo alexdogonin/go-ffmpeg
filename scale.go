@@ -35,7 +35,7 @@ func (scaleContext *ScaleContext) Release() {
 	C.sws_freeContext(scaleContext.ctype())
 }
 
-func (scaleContext *ScaleContext) Scale(src, dst *Frame) {
+func (scaleContext *ScaleContext) Scale(src, dst *VideoFrame) {
 	C.sws_scale(
 		scaleContext.ctype(),
 		&(src.ctype().data[0]),

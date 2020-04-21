@@ -66,7 +66,7 @@ func (context *VideoCodecContext) Release() {
 	C.avcodec_free_context((**C.struct_AVCodecContext)(unsafe.Pointer(&context)))
 }
 
-func (context *VideoCodecContext) SendFrame(frame *Frame) error {
+func (context *VideoCodecContext) SendFrame(frame *VideoFrame) error {
 	if int(C.avcodec_send_frame(context.ctype(), frame.ctype())) != 0 {
 		return errors.New("send frame error")
 	}

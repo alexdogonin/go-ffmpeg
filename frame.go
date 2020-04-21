@@ -17,10 +17,10 @@ var pixelFormatSubsampleRatio = map[PixelFormat]image.YCbCrSubsampleRatio{
 	YUV444P:  image.YCbCrSubsampleRatio444,
 }
 
-type Frame C.struct_AVFrame
+type VideoFrame C.struct_AVFrame
 
-func NewFrame(width, height int, pixFmt PixelFormat) (*Frame, error) {
-	frame := (*Frame)(unsafe.Pointer(C.av_frame_alloc()))
+func NewVideoFrame(width, height int, pixFmt PixelFormat) (*VideoFrame, error) {
+	frame := (*VideoFrame)(unsafe.Pointer(C.av_frame_alloc()))
 
 	frame.format = C.int(pixFmt)
 	frame.width = C.int(width)
@@ -33,15 +33,15 @@ func NewFrame(width, height int, pixFmt PixelFormat) (*Frame, error) {
 	return frame, nil
 }
 
-func (frame *Frame) SetPts(pts int) {
+func (frame *VideoFrame) SetPts(pts int) {
 	frame.ctype().pts = C.long(pts)
 }
 
-func (frame *Frame) Release() {
+func (frame *VideoFrame) Release() {
 	C.av_frame_free((**C.struct_AVFrame)(unsafe.Pointer(&frame)))
 }
 
-func (frame *Frame) MakeWritable() error {
+func (frame *VideoFrame) MakeWritable() error {
 	if 0 != int(C.av_frame_make_writable(frame.ctype())) {
 		return errors.New("make writable error")
 	}
@@ -49,7 +49,7 @@ func (frame *Frame) MakeWritable() error {
 	return nil
 }
 
-func (frame *Frame) FillRGBA(img *image.RGBA) error {
+func (frame *VideoFrame) FillRGBA(img *image.RGBA) error {
 	if PixelFormat(frame.format) != RGBA {
 		return errors.New("pixel format of frame is not RGBA")
 	}
@@ -75,7 +75,7 @@ func (frame *Frame) FillRGBA(img *image.RGBA) error {
 	return nil
 }
 
-func (frame *Frame) FillYCbCr(img *image.YCbCr) error {
+func (frame *VideoFrame) FillYCbCr(img *image.YCbCr) error {
 	ratio, ok := pixelFormatSubsampleRatio[PixelFormat(frame.format)]
 	if !ok {
 		return errors.New("pixel format of frame is not YCbCr")
@@ -111,6 +111,6 @@ func (frame *Frame) FillYCbCr(img *image.YCbCr) error {
 	return nil
 }
 
-func (frame *Frame) ctype() *C.struct_AVFrame {
+func (frame *VideoFrame) ctype() *C.struct_AVFrame {
 	return (*C.struct_AVFrame)(unsafe.Pointer(frame))
 }

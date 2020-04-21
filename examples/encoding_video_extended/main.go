@@ -36,7 +36,7 @@ func main() {
 		log.Fatalf("find encodec error, %s", err)
 	}
 
-	codecContext, err := ffmpeg.NewCodecContext(codec, width, height, pixelFormat)
+	codecContext, err := ffmpeg.NewVideoCodecContext(codec, width, height, pixelFormat)
 	if err != nil {
 		log.Fatalf("init codec context error")
 	}

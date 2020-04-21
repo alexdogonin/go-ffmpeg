@@ -14,9 +14,9 @@ var (
 	EOF    = errors.New("EOF")
 )
 
-type CodecContext C.struct_AVCodecContext
+type VideoCodecContext C.struct_AVCodecContext
 
-type CodecContextOpt func(codecCtx *CodecContext)
+type VideoCodecContextOpt func(codecCtx *VideoCodecContext)
 
 /*NewCodecContext creates new codec context and try to open codec
 
@@ -32,7 +32,7 @@ type CodecContextOpt func(codecCtx *CodecContext)
 	480p       | 2.5 Mbps            | 4 Mbps
 	360p       | 1 Mbps              | 1.5 Mbps
 */
-func NewCodecContext(codec *Codec, width, height int, pixFmt PixelFormat, opts ...CodecContextOpt) (*CodecContext, error) {
+func NewVideoCodecContext(codec *Codec, width, height int, pixFmt PixelFormat, opts ...VideoCodecContextOpt) (*VideoCodecContext, error) {
 	context := C.avcodec_alloc_context3((*C.struct_AVCodec)(codec))
 
 	const defaultFramerate = 25
@@ -46,7 +46,7 @@ func NewCodecContext(codec *Codec, width, height int, pixFmt PixelFormat, opts .
 
 	context.bit_rate = C.long(calculateBitrate(int(context.height), int(context.framerate.num)))
 
-	codecCtx := (*CodecContext)(unsafe.Pointer(context))
+	codecCtx := (*VideoCodecContext)(unsafe.Pointer(context))
 	for _, opt := range opts {
 		opt(codecCtx)
 	}
@@ -62,11 +62,11 @@ func NewCodecContext(codec *Codec, width, height int, pixFmt PixelFormat, opts .
 	return codecCtx, nil
 }
 
-func (context *CodecContext) Release() {
+func (context *VideoCodecContext) Release() {
 	C.avcodec_free_context((**C.struct_AVCodecContext)(unsafe.Pointer(&context)))
 }
 
-func (context *CodecContext) SendFrame(frame *Frame) error {
+func (context *VideoCodecContext) SendFrame(frame *Frame) error {
 	if int(C.avcodec_send_frame(context.ctype(), frame.ctype())) != 0 {
 		return errors.New("send frame error")
 	}
@@ -74,7 +74,7 @@ func (context *CodecContext) SendFrame(frame *Frame) error {
 	return nil
 }
 
-func (context *CodecContext) ReceivePacket(dest *Packet) error {
+func (context *VideoCodecContext) ReceivePacket(dest *Packet) error {
 	ret := int(C.avcodec_receive_packet(context.ctype(), dest.ctype()))
 	if ret == -int(C.EAGAIN) {
 		return EAGAIN
@@ -91,7 +91,7 @@ func (context *CodecContext) ReceivePacket(dest *Packet) error {
 	return nil
 }
 
-func (context *CodecContext) CodecParameters() *CodecParameters {
+func (context *VideoCodecContext) CodecParameters() *CodecParameters {
 	parms := &CodecParameters{}
 
 	C.avcodec_parameters_from_context((*C.struct_AVCodecParameters)(unsafe.Pointer(parms)), context.ctype())
@@ -99,38 +99,38 @@ func (context *CodecContext) CodecParameters() *CodecParameters {
 	return parms
 }
 
-func (context *CodecContext) ctype() *C.struct_AVCodecContext {
+func (context *VideoCodecContext) ctype() *C.struct_AVCodecContext {
 	return (*C.struct_AVCodecContext)(unsafe.Pointer(context))
 }
 
-func WithBitrate(bitrate int) CodecContextOpt {
-	return func(codecCtx *CodecContext) {
+func WithBitrate(bitrate int) VideoCodecContextOpt {
+	return func(codecCtx *VideoCodecContext) {
 		codecCtx.ctype().bit_rate = C.long(bitrate)
 	}
 }
 
-func WithResolution(width, height int) CodecContextOpt {
-	return func(codecCtx *CodecContext) {
+func WithResolution(width, height int) VideoCodecContextOpt {
+	return func(codecCtx *VideoCodecContext) {
 		codecCtx.ctype().width = C.int(width)
 		codecCtx.ctype().height = C.int(height)
 	}
 }
 
-func WithFramerate(framerate int) CodecContextOpt {
-	return func(codecCtx *CodecContext) {
+func WithFramerate(framerate int) VideoCodecContextOpt {
+	return func(codecCtx *VideoCodecContext) {
 		codecCtx.ctype().time_base = C.AVRational{C.int(1), C.int(framerate)}
 		codecCtx.ctype().framerate = C.AVRational{C.int(framerate), C.int(1)}
 	}
 }
 
-func WithPixFmt(pixFmt PixelFormat) CodecContextOpt {
-	return func(codecCtx *CodecContext) {
+func WithPixFmt(pixFmt PixelFormat) VideoCodecContextOpt {
+	return func(codecCtx *VideoCodecContext) {
 		codecCtx.ctype().pix_fmt = pixFmt.ctype()
 	}
 }
 
-func WithGopSize(gopSize int) CodecContextOpt {
-	return func(codecCtxt *CodecContext) {
+func WithGopSize(gopSize int) VideoCodecContextOpt {
+	return func(codecCtxt *VideoCodecContext) {
 		codecCtxt.ctype().gop_size = C.int(gopSize)
 	}
 }

@@ -35,6 +35,31 @@ func (context *AudioCodecContext) Release() {
 	C.avcodec_free_context((**C.struct_AVCodecContext)(unsafe.Pointer(&context)))
 }
 
+func (context *AudioCodecContext) SendFrame(frame *AudioFrame) error {
+	if int(C.avcodec_send_frame(context.ctype(), frame.ctype())) != 0 {
+		return errors.New("send frame error")
+	}
+
+	return nil
+}
+
+func (context *AudioCodecContext) ReceivePacket(dest *Packet) error {
+	ret := int(C.avcodec_receive_packet(context.ctype(), dest.ctype()))
+	if ret == -int(C.EAGAIN) {
+		return EAGAIN
+	}
+
+	if ret == int(C.AVERROR_EOF) {
+		return EOF
+	}
+
+	if ret < 0 {
+		return fmt.Errorf("error during encoding (code = %q)", ret)
+	}
+
+	return nil
+}
+
 func (context *AudioCodecContext) ctype() *C.struct_AVCodecContext {
 	return (*C.struct_AVCodecContext)(unsafe.Pointer(context))
 }

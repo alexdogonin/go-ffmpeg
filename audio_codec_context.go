@@ -5,13 +5,19 @@ import "C"
 
 import (
 	"errors"
+	"fmt"
+	"math/bits"
 	"unsafe"
 )
 
 type AudioCodecContext C.struct_AVCodecContext
 
-func NewAudioCodecContext(codec *Codec, opts ...AudioCodecContextOpt) (*AudioCodecContext, error) {
+func NewAudioCodecContext(codec *Codec, bitrate int, rate int, fmt SampleFormat, chLayout ChannelLayout) (*AudioCodecContext, error) {
 	c := C.avcodec_alloc_context3((*C.struct_AVCodec)(codec))
+
+	c.bitrate = C.int(bitrate)
+	c.channels = bits.OnesCount64(chLayout)
+	c.channel_layout = chLayout.ctype()
 
 	context := (*AudioCodecContext)(unsafe.Pointer(c))
 	for _, opt := range opts {

@@ -9,8 +9,6 @@ import (
 	"unsafe"
 )
 
-type CodecID C.enum_AVCodecID
-
 type Codec C.struct_AVCodec
 
 func CodecByName(name string) (*Codec, error) {

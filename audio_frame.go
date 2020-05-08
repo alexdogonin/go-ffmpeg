@@ -10,11 +10,11 @@ import (
 
 type AudioFrame C.struct_Frame
 
-func NewAudioFrame(size int, sampleFmt SampleFormat, channelLayout uint64) (*AudioFrame, error) {
+func NewAudioFrame(samples int, sampleFmt SampleFormat, channelLayout ChannelLayout) (*AudioFrame, error) {
 	f := C.av_frame_alloc()
-	f.nb_samples = C.int(size)
+	f.nb_samples = C.int(samples)
 	f.format = C.int(sampleFmt.ctype())
-	f.channel_layout = C.ulong(channelLayout)
+	f.channel_layout = channelLayout.ctype()
 
 	frame := (*AudioFrame)(unsafe.Pointer(f))
 	if ret := C.av_frame_get_buffer(frame.ctype(), C.int(1) /*alignment*/); ret < 0 {
@@ -35,6 +35,16 @@ func (frame *AudioFrame) MakeWritable() error {
 	}
 
 	return nil
+}
+
+func (frame *AudioFrame) Write(data []byte) (int, error) {
+	if int(frame.ctype().linesize[0]) < len(data) {
+		return 0, errors.New("frame buffer less than writable data")
+	}
+
+	C.memcpy(frame.ctype().data[0], &(data[0]), C.uint(len(data)))
+
+	return len(data), nil
 }
 
 func (frame *AudioFrame) ctype() *C.struct_AVFrame {

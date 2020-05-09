@@ -15,14 +15,16 @@ type AudioCodecContext C.struct_AVCodecContext
 func NewAudioCodecContext(codec *Codec, bitrate int, rate int, fmt SampleFormat, chLayout ChannelLayout) (*AudioCodecContext, error) {
 	c := C.avcodec_alloc_context3((*C.struct_AVCodec)(codec))
 
-	c.bitrate = C.int(bitrate)
-	c.channels = bits.OnesCount64(chLayout)
+	c.bit_rate = C.long(bitrate)
+	c.channels = C.int(bits.OnesCount64(uint64(chLayout)))
 	c.channel_layout = chLayout.ctype()
+	c.sample_rate = C.int(rate)
+	c.sample_fmt = fmt.ctype()
 
 	context := (*AudioCodecContext)(unsafe.Pointer(c))
-	for _, opt := range opts {
-		opt(context)
-	}
+	// for _, opt := range opts {
+	// 	opt(context)
+	// }
 
 	if ok := int(C.avcodec_open2(c, (*C.struct_AVCodec)(codec), nil)) == 0; !ok {
 		return nil, errors.New("codec open error")
@@ -58,6 +60,10 @@ func (context *AudioCodecContext) ReceivePacket(dest *Packet) error {
 	}
 
 	return nil
+}
+
+func (context *AudioCodecContext) SamplesPerFrame() int {
+	return int(context.ctype().frame_size)
 }
 
 func (context *AudioCodecContext) ctype() *C.struct_AVCodecContext {

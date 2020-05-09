@@ -42,7 +42,7 @@ func (frame *AudioFrame) Write(data []byte) (int, error) {
 		return 0, errors.New("frame buffer less than writable data")
 	}
 
-	C.memcpy(frame.ctype().data[0], &(data[0]), C.uint(len(data)))
+	C.memcpy(unsafe.Pointer(frame.ctype().data[0]), unsafe.Pointer(&(data[0])), C.ulong(len(data)))
 
 	return len(data), nil
 }

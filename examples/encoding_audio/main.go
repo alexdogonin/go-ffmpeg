@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"log"
 	"math"
 	"os"
@@ -16,8 +17,7 @@ func main() {
 		bitrate        = 64000
 		sampleFmt      = ffmpeg.SampleFormatS32P
 		sampleRate     = 44100
-		channels       = 2
-		channelsLayout = ffmpeg.ChannelLayoutStereo
+		channelsLayout = ffmpeg.ChannelLayoutMono
 		duration       = 5 * time.Second
 	)
 
@@ -52,23 +52,23 @@ func main() {
 
 	frames := int(duration.Seconds()) * sampleRate / context.SamplesPerFrame()
 
-	t := 0.
-	tIncr := 2 * math.Pi * 440.0 / sampleRate
+	timePerSample := 2 * math.Pi * 440.0 / sampleRate
 
 	for i := 0; i < frames; i++ {
-		// frame.MakeWritable()
-
 		data := make([]byte, 0)
+
 		for j := 0; j < context.SamplesPerFrame(); j++ {
-			left := int32(math.Sin(t) * 100)
-			data = append(data, uint8(left>>24), uint8(left>>16), uint8(left>>8), uint8(left))
-			// data = append(data, uint8(left>>8), uint8(left))
+			t := timePerSample * float64(i*context.SamplesPerFrame()+j)
 
-			// right := left
-			// data = append(data, uint8(right>>24), uint8(right>>16), uint8(right>>8), uint8(right))
-			// data = append(data, uint8(right>>8), uint8(right))
+			const maxLevel = math.MaxUint32 / 2
+			level := uint32(math.Sin(t) * maxLevel)
 
-			t += tIncr
+			const formatBytes = 4
+			bytes := make([]byte, formatBytes)
+
+			binary.LittleEndian.PutUint32(bytes, level)
+
+			data = append(data, bytes...)
 		}
 
 		if _, err = frame.Write(data); err != nil {
@@ -95,5 +95,26 @@ func main() {
 			packet.Unref()
 		}
 
+	}
+
+	// flush
+	if err = context.SendFrame(nil); err != nil {
+		log.Fatal(err)
+	}
+
+	for {
+		if err = context.ReceivePacket(packet); err != nil {
+			if err == ffmpeg.EAGAIN || err == ffmpeg.EOF {
+				break
+			}
+
+			log.Fatalf("receive packet error, %s", err)
+		}
+
+		if _, err := f.Write(packet.Data()); err != nil {
+			log.Fatalf("write file error, %v", err)
+		}
+
+		packet.Unref()
 	}
 }

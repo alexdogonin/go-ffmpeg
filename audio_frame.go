@@ -47,6 +47,10 @@ func (frame *AudioFrame) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
+func (frame *AudioFrame) SetPts(pts int) {
+	frame.ctype().pts = C.long(pts)
+}
+
 func (frame *AudioFrame) ctype() *C.struct_AVFrame {
 	return (*C.struct_AVFrame)(unsafe.Pointer(frame))
 }

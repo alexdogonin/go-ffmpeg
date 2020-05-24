@@ -52,24 +52,10 @@ func main() {
 
 	frames := int(duration.Seconds()) * sampleRate / context.SamplesPerFrame()
 
-	timePerSample := 2 * math.Pi * 440.0 / sampleRate
+	data := make([]byte, 0)
 
 	for i := 0; i < frames; i++ {
-		data := make([]byte, 0)
-
-		for j := 0; j < context.SamplesPerFrame(); j++ {
-			t := timePerSample * float64(i*context.SamplesPerFrame()+j)
-
-			const maxLevel = math.MaxUint32 / 2
-			level := uint32(math.Sin(t) * maxLevel)
-
-			const formatBytes = 4
-			bytes := make([]byte, formatBytes)
-
-			binary.LittleEndian.PutUint32(bytes, level)
-
-			data = append(data, bytes...)
-		}
+		data = fillFakeFrame(context.SamplesPerFrame(), i, sampleRate, data[:0])
 
 		if _, err = frame.Write(data); err != nil {
 			log.Fatal(err)
@@ -79,20 +65,16 @@ func main() {
 			log.Fatal(err)
 		}
 
-		for {
-			if err = context.ReceivePacket(packet); err != nil {
-				if err == ffmpeg.EAGAIN || err == ffmpeg.EOF {
-					break
-				}
-
-				log.Fatalf("receive packet error, %s", err)
-			}
-
+		for context.ReceivePacket(packet) {
 			if _, err := f.Write(packet.Data()); err != nil {
 				log.Fatalf("write file error, %v", err)
 			}
 
 			packet.Unref()
+		}
+
+		if err = context.Err(); err != nil {
+			log.Fatalf("receive packet error, %s", err)
 		}
 
 	}
@@ -102,19 +84,35 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for {
-		if err = context.ReceivePacket(packet); err != nil {
-			if err == ffmpeg.EAGAIN || err == ffmpeg.EOF {
-				break
-			}
-
-			log.Fatalf("receive packet error, %s", err)
-		}
-
+	for context.ReceivePacket(packet) {
 		if _, err := f.Write(packet.Data()); err != nil {
 			log.Fatalf("write file error, %v", err)
 		}
 
 		packet.Unref()
 	}
+
+	if err = context.Err(); err != nil {
+		log.Fatalf("receive packet error, %s", err)
+	}
+}
+
+func fillFakeFrame(samples, i int, sampleRate int, dest []byte) []byte {
+	timePerSample := 2 * math.Pi * 440 / float64(sampleRate)
+
+	for j := 0; j < samples; j++ {
+		t := timePerSample * float64(i*samples+j)
+
+		const maxLevel = math.MaxUint32 / 2
+		level := uint32(math.Sin(t) * maxLevel)
+
+		const formatBytes = 4
+		bytes := make([]byte, formatBytes)
+
+		binary.LittleEndian.PutUint32(bytes, level)
+
+		dest = append(dest, bytes...)
+	}
+
+	return dest
 }

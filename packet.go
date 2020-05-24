@@ -28,8 +28,16 @@ func (packet *Packet) Data() []byte {
 	return C.GoBytes(unsafe.Pointer(packet.ctype().data), C.int(packet.ctype().size))
 }
 
+func (packet *Packet) RescaleTimestamp(from, to Rational) {
+	C.av_packet_rescale_ts(packet.ctype(), from.ctype(), to.ctype())
+}
+
 func (packet *Packet) Unref() {
 	C.av_packet_unref(packet.ctype())
+}
+
+func (packet *Packet) SetStream(index int) {
+	packet.ctype().stream_index = C.int(index)
 }
 
 func (packet *Packet) ctype() *C.struct_AVPacket {

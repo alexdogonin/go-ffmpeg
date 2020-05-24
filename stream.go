@@ -19,13 +19,16 @@ func NewStream(formatContext *FormatContext) (*Stream, error) {
 	}
 
 	stream.id = C.int(formatContext.nb_streams - 1)
-	stream.time_base = C.struct_AVRational{1, 25}
 
 	return stream, nil
 }
 
 func (s *Stream) SetCodecParameters(parms *CodecParameters) {
 	*(s.ctype().codecpar) = *(parms.ctype())
+}
+
+func (s *Stream) TimeBase() Rational {
+	return Rational{int(s.ctype().time_base.num), int(s.ctype().time_base.den)}
 }
 
 func (s *Stream) ctype() *C.struct_AVStream {

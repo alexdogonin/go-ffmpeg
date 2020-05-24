@@ -13,6 +13,7 @@ import (
 func main() {
 	const (
 		pixelFormat     = ffmpeg.YUV420P
+		subsampleRatio  = image.YCbCrSubsampleRatio420
 		width           = 640
 		height          = 480
 		fileName        = "result.avi"
@@ -73,7 +74,7 @@ func main() {
 	}
 	defer packet.Release()
 
-	img := image.NewYCbCr(image.Rect(0, 0, width, height), image.YCbCrSubsampleRatio420)
+	img := image.NewYCbCr(image.Rect(0, 0, width, height), subsampleRatio)
 	// write frame here
 	framesCount := int(duration.Seconds()) * defaulFramerate
 	for i := 0; i < framesCount; i++ {
@@ -89,15 +90,34 @@ func main() {
 			log.Fatalf("encode frame error, %s", err)
 		}
 
-		if err = codecContext.ReceivePacket(packet); err != nil {
-			log.Fatalf("receive packet error, %s", err)
+		for codecContext.ReceivePacket(packet) {
+			if err = formatContext.WritePacket(packet); err != nil {
+				log.Fatalf("write packet to output error, %s", err)
+			}
+
+			packet.Unref()
 		}
 
+		if err = codecContext.Err(); err != nil {
+			log.Fatalf("receive packet error, %s", err)
+		}
+	}
+
+	// flush
+	if err = codecContext.SendFrame(nil); err != nil {
+		log.Fatalf("encode frame error, %s", err)
+	}
+
+	for codecContext.ReceivePacket(packet) {
 		if err = formatContext.WritePacket(packet); err != nil {
 			log.Fatalf("write packet to output error, %s", err)
 		}
 
 		packet.Unref()
+	}
+
+	if err = codecContext.Err(); err != nil {
+		log.Fatalf("receive packet error, %s", err)
 	}
 
 	if err = formatContext.WriteTrailer(); err != nil {

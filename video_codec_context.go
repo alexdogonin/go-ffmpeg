@@ -14,7 +14,11 @@ var (
 	EOF    = errors.New("EOF")
 )
 
-type VideoCodecContext C.struct_AVCodecContext
+type VideoCodecContext struct {
+	context *C.struct_AVCodecContext
+
+	err error
+}
 
 /*NewCodecContext creates new codec context and try to open codec
 
@@ -44,7 +48,10 @@ func NewVideoCodecContext(codec *Codec, width, height int, pixFmt PixelFormat, o
 
 	context.bit_rate = C.long(calculateBitrate(int(context.height), int(context.framerate.num)))
 
-	codecCtx := (*VideoCodecContext)(unsafe.Pointer(context))
+	codecCtx := &VideoCodecContext{
+		context: context,
+	}
+
 	for _, opt := range opts {
 		opt(codecCtx)
 	}
@@ -61,44 +68,49 @@ func NewVideoCodecContext(codec *Codec, width, height int, pixFmt PixelFormat, o
 }
 
 func (context *VideoCodecContext) Release() {
-	C.avcodec_free_context((**C.struct_AVCodecContext)(unsafe.Pointer(&context)))
+	C.avcodec_free_context(&context.context)
 }
 
 func (context *VideoCodecContext) SendFrame(frame *VideoFrame) error {
-	if int(C.avcodec_send_frame(context.ctype(), frame.ctype())) != 0 {
+	if context.err != nil {
+		return context.err
+	}
+
+	if int(C.avcodec_send_frame(context.context, frame.ctype())) != 0 {
 		return errors.New("send frame error")
 	}
 
 	return nil
 }
 
-func (context *VideoCodecContext) ReceivePacket(dest *Packet) error {
-	ret := int(C.avcodec_receive_packet(context.ctype(), dest.ctype()))
-	if ret == -int(C.EAGAIN) {
-		return EAGAIN
+func (context *VideoCodecContext) ReceivePacket(dest *Packet) bool {
+	if context.err != nil {
+		return false
 	}
 
-	if ret == int(C.AVERROR_EOF) {
-		return EOF
+	ret := int(C.avcodec_receive_packet(context.context, dest.ctype()))
+	if ret == -int(C.EAGAIN) || ret == int(C.AVERROR_EOF) {
+		return false
 	}
 
 	if ret < 0 {
-		return fmt.Errorf("error during encoding (code = %q)", ret)
+		context.err = fmt.Errorf("error during encoding (code = %q)", ret)
+		return false
 	}
 
-	return nil
+	return true
+}
+
+func (context *VideoCodecContext) Err() error {
+	return context.err
 }
 
 func (context *VideoCodecContext) CodecParameters() *CodecParameters {
 	parms := &CodecParameters{}
 
-	C.avcodec_parameters_from_context((*C.struct_AVCodecParameters)(unsafe.Pointer(parms)), context.ctype())
+	C.avcodec_parameters_from_context((*C.struct_AVCodecParameters)(unsafe.Pointer(parms)), context.context)
 
 	return parms
-}
-
-func (context *VideoCodecContext) ctype() *C.struct_AVCodecContext {
-	return (*C.struct_AVCodecContext)(unsafe.Pointer(context))
 }
 
 func calculateBitrate(height, framerate int) int {

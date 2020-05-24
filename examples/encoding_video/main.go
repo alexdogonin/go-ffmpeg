@@ -12,10 +12,10 @@ import (
 func main() {
 	const (
 		framerate   = 25
-		codecName   = "h263p"
+		codecID     = ffmpeg.CodecIDMPEG4
 		resultName  = "result.avi"
-		videoWidth  = 640
-		videoHeight = 320
+		videoWidth  = 704
+		videoHeight = 576
 		durationSec = 8
 	)
 
@@ -25,9 +25,9 @@ func main() {
 	}
 	defer f.Close()
 
-	codec, err := ffmpeg.CodecByName(codecName)
+	codec, err := ffmpeg.CodecByID(codecID)
 	if err != nil {
-		log.Fatalf("find codec %q error, %s", err)
+		log.Fatalf("find codec %d error, %s", codecID, err)
 	}
 
 	codecCtx, err := ffmpeg.NewVideoCodecContext(codec, videoWidth, videoHeight, ffmpeg.YUV420P,
@@ -38,11 +38,12 @@ func main() {
 	}
 	defer codecCtx.Release()
 
-	frame, err := ffmpeg.NewFrame(videoWidth, videoHeight, ffmpeg.YUV420P)
+	frame, err := ffmpeg.NewVideoFrame(videoWidth, videoHeight, ffmpeg.YUV420P)
 	if err != nil {
 		log.Fatalf("initialize frame error, %s", err)
 	}
 	defer frame.Release()
+
 	frameImg := image.NewYCbCr(image.Rect(0, 0, videoWidth, videoHeight), image.YCbCrSubsampleRatio420)
 
 	packet, err := ffmpeg.NewPacket()
@@ -53,24 +54,8 @@ func main() {
 
 	totalFrames := framerate * durationSec
 	for i := 0; i < totalFrames; i++ {
-		/* prepare a dummy image */
-		/* Y */
-		for y := 0; y < frameImg.Bounds().Max.Y; y++ {
-			for x := 0; x < frameImg.Bounds().Max.X; x++ {
-				frameImg.Y[y*frameImg.YStride+x] = uint8(x + y + i*3)
-			}
-		}
+		fillFakeImg(frameImg, i)
 
-		/* Cb and Cr */
-		for y := 0; y < frameImg.Bounds().Max.Y/2; y++ {
-			for x := 0; x < frameImg.Bounds().Max.X/2; x++ {
-				frameImg.Cb[y*frameImg.CStride+x] = uint8(128 + y + i*2)
-				frameImg.Cr[y*frameImg.CStride+x] = uint8(64 + x + i*5)
-			}
-		}
-
-		// draw to frame
-		// . . .
 		if err = frame.FillYCbCr(frameImg); err != nil {
 			log.Fatalf("fill frame error, %s", err)
 		}
@@ -81,20 +66,51 @@ func main() {
 			log.Fatalf("send frame to encoding error, %s", err)
 		}
 
-		for {
-			if err = codecCtx.ReceivePacket(packet); err != nil {
-				if err == ffmpeg.EAGAIN || err == ffmpeg.EOF {
-					break
-				}
-
-				log.Fatalf("receive packet error, %s", err)
-			}
-
+		for codecCtx.ReceivePacket(packet) {
 			if _, err := f.Write(packet.Data()); err != nil {
 				log.Fatalf("write file error, %v", err)
 			}
 
 			packet.Unref()
+		}
+
+		if err = codecCtx.Err(); err != nil {
+			log.Fatalf("receive packet error, %s", err)
+		}
+	}
+
+	// flush
+	if err = codecCtx.SendFrame(nil); err != nil {
+		log.Fatalf("send frame to encoding error, %s", err)
+	}
+
+	for codecCtx.ReceivePacket(packet) {
+		if _, err := f.Write(packet.Data()); err != nil {
+			log.Fatalf("write file error, %v", err)
+		}
+
+		packet.Unref()
+	}
+
+	if err = codecCtx.Err(); err != nil {
+		log.Fatalf("receive packet error, %s", err)
+	}
+}
+
+func fillFakeImg(img *image.YCbCr, i int) {
+	/* prepare a dummy image */
+	/* Y */
+	for y := 0; y < img.Bounds().Max.Y; y++ {
+		for x := 0; x < img.Bounds().Max.X; x++ {
+			img.Y[y*img.YStride+x] = uint8(x + y + i*3)
+		}
+	}
+
+	/* Cb and Cr */
+	for y := 0; y < img.Bounds().Max.Y/2; y++ {
+		for x := 0; x < img.Bounds().Max.X/2; x++ {
+			img.Cb[y*img.CStride+x] = uint8(128 + y + i*2)
+			img.Cr[y*img.CStride+x] = uint8(64 + x + i*5)
 		}
 	}
 }

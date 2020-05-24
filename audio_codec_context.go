@@ -10,7 +10,11 @@ import (
 	"unsafe"
 )
 
-type AudioCodecContext C.struct_AVCodecContext
+type AudioCodecContext struct {
+	context *C.struct_AVCodecContext
+
+	err error
+}
 
 func NewAudioCodecContext(codec *Codec, bitrate int, rate int, fmt SampleFormat, chLayout ChannelLayout) (*AudioCodecContext, error) {
 	c := C.avcodec_alloc_context3((*C.struct_AVCodec)(codec))
@@ -21,7 +25,9 @@ func NewAudioCodecContext(codec *Codec, bitrate int, rate int, fmt SampleFormat,
 	c.sample_rate = C.int(rate)
 	c.sample_fmt = fmt.ctype()
 
-	context := (*AudioCodecContext)(unsafe.Pointer(c))
+	context := &AudioCodecContext{
+		context: c,
+	}
 	// for _, opt := range opts {
 	// 	opt(context)
 	// }
@@ -34,36 +40,53 @@ func NewAudioCodecContext(codec *Codec, bitrate int, rate int, fmt SampleFormat,
 }
 
 func (context *AudioCodecContext) Release() {
-	C.avcodec_free_context((**C.struct_AVCodecContext)(unsafe.Pointer(&context)))
+	C.avcodec_free_context(&context.context)
 }
 
 func (context *AudioCodecContext) SendFrame(frame *AudioFrame) error {
-	if int(C.avcodec_send_frame(context.ctype(), frame.ctype())) != 0 {
+	if context.err != nil {
+		return context.err
+	}
+
+	if int(C.avcodec_send_frame(context.context, frame.ctype())) != 0 {
 		return errors.New("send frame error")
 	}
 
 	return nil
 }
 
-func (context *AudioCodecContext) ReceivePacket(dest *Packet) error {
-	ret := int(C.avcodec_receive_packet(context.ctype(), dest.ctype()))
-	if ret == -int(C.EAGAIN) {
-		return EAGAIN
+func (context *AudioCodecContext) ReceivePacket(dest *Packet) bool {
+	if context.err != nil {
+		return false
 	}
 
-	if ret == int(C.AVERROR_EOF) {
-		return EOF
+	ret := int(C.avcodec_receive_packet(context.context, dest.ctype()))
+	if ret == -int(C.EAGAIN) || ret == int(C.AVERROR_EOF) {
+		return false
 	}
 
 	if ret < 0 {
-		return fmt.Errorf("error during encoding (code = %q)", ret)
+		context.err = fmt.Errorf("error during encoding (code = %q)", ret)
+		return false
 	}
 
-	return nil
+	return true
+}
+
+func (context *AudioCodecContext) Err() error {
+	return context.err
 }
 
 func (context *AudioCodecContext) SamplesPerFrame() int {
-	return int(context.ctype().frame_size)
+	return int(context.context.frame_size)
+}
+
+func (context *AudioCodecContext) CodecParameters() *CodecParameters {
+	parms := &CodecParameters{}
+
+	C.avcodec_parameters_from_context((*C.struct_AVCodecParameters)(unsafe.Pointer(parms)), context.context)
+
+	return parms
 }
 
 func (context *AudioCodecContext) ctype() *C.struct_AVCodecContext {

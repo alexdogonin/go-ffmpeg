@@ -16,7 +16,6 @@ char *av_err(int errnum) {
 import "C"
 
 import (
-	"errors"
 	"fmt"
 	"unsafe"
 )
@@ -25,10 +24,6 @@ type FormatContext C.struct_AVFormatContext
 
 func NewFormatContext(filename string, oFormat *OutputFormat) (*FormatContext, error) {
 	context := (*FormatContext)(unsafe.Pointer(C.avformat_alloc_context()))
-
-	if context == nil {
-		return nil, errors.New("create format context error")
-	}
 
 	C.av_strlcpy(&(context.ctype().filename[0]), C.CString(filename), C.ulong(len(filename)+1))
 	context.url = C.av_strdup(C.CString(filename))
@@ -49,6 +44,34 @@ func NewFormatContext(filename string, oFormat *OutputFormat) (*FormatContext, e
 	return context, nil
 }
 
+func NewFormatContextInput(input *IOContext, iFormat interface {
+	ctype() *C.struct_AVInputFormat
+}) {
+
+	context := (*FormatContext)(unsafe.Pointer(C.avformat_alloc_context()))
+
+	context.ctype().iformat = iFormat.ctype()
+
+	// C.av_strlcpy(&(context.ctype().filename[0]), C.CString(filename), C.ulong(len(filename)+1))
+	// context.ctype().url = C.av_strdup(C.CString(filename))
+
+	context.ctype().duration = C.int64(0x8000000000000000)
+	context.ctype().start_time = C.int64(0x8000000000000000)
+
+	context.priv_data = nil
+	if context.iformat.priv_data_size != C.int(0) {
+		context.priv_data = C.av_mallocz(C.ulong(context.oformat.priv_data_size))
+
+		if context.oformat.priv_class != nil {
+			*((**C.struct_AVClass)(context.priv_data)) = context.oformat.priv_class
+
+			C.av_opt_set_defaults(context.priv_data)
+		}
+	}
+
+	//call static int update_stream_avctx(AVFormatContext *s)
+}
+
 func (context *FormatContext) Release() {
 	C.avformat_free_context(context.ctype())
 }
@@ -57,12 +80,12 @@ func (context *FormatContext) DumpFormat() {
 	C.av_dump_format(context.ctype(), 0, &(context.ctype().filename[0]), 1)
 }
 
-func (context *FormatContext) OpenOutput() error {
+func (context *FormatContext) OpenIO() error {
 	if (context.ctype().oformat.flags & C.AVFMT_NOFILE) != 0 {
 		return nil
 	}
 
-	ret := C.avio_open(&(context.ctype().pb), &(context.ctype().filename[0]), C.AVIO_FLAG_WRITE)
+	ret := C.avio_open(&(context.ctype().pb), &(context.ctype().url), C.AVIO_FLAG_WRITE)
 	if ret < 0 {
 		return fmt.Errorf("open %q error, %s", context.ctype().filename, C.av_err(C.int(ret)))
 	}

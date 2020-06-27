@@ -42,3 +42,21 @@ func (format *OutputFormat) AudioCodec() CodecID {
 func (format *OutputFormat) ctype() *C.struct_AVOutputFormat {
 	return (*C.struct_AVOutputFormat)(unsafe.Pointer(format))
 }
+
+type InputFormat C.struct_AVInputFormat
+
+func ProbeFormat(ioCtx *IOContext) (*InputFormat, error) {
+	var inputFmt *InputFormat
+
+	ret := C.av_probe_input_buffer2(ioCtx.ctype(), &(inputFmt.ctype()))
+	if int(ret) < 0 {
+		return nil, errors.New("probe input error")
+	}
+
+	return inputFmt, nil
+}
+
+func (format *InputFormat) ctype() *C.struct_AVInputFormat {
+	return (*C.struct_AVInputFormat)(unsafe.Pointer(format))
+}
+

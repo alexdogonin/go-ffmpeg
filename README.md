@@ -51,7 +51,7 @@ see [examples](https://github.com/alexdogonin/go-ffmpeg/tree/master/examples) di
 
 - [ ] add minimal tools number sufficient for this works:
   - [x] encoding - generate video from image and audio track
-  - [ ] decoding - generate number of images from video
+  - [ ] decoding - generate number of images and audio file from video
   - [ ] rescaling video
   - [ ] resampling audio
   - [ ] convert formats

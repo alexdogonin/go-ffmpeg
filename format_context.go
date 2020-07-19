@@ -20,9 +20,13 @@ import (
 	"unsafe"
 )
 
+const (
+	AVFMT_FLAG_CUSTOM_IO = 0x0080
+)
+
 type FormatContext C.struct_AVFormatContext
 
-func NewFormatContext(filename string, oFormat *OutputFormat) (*FormatContext, error) {
+func NewOutputFormatContext(filename string, oFormat *OutputFormat) (*FormatContext, error) {
 	context := (*FormatContext)(unsafe.Pointer(C.avformat_alloc_context()))
 
 	C.av_strlcpy(&(context.ctype().filename[0]), C.CString(filename), C.ulong(len(filename)+1))
@@ -44,13 +48,13 @@ func NewFormatContext(filename string, oFormat *OutputFormat) (*FormatContext, e
 	return context, nil
 }
 
-func NewFormatContextInput(input *IOContext, iFormat interface {
-	ctype() *C.struct_AVInputFormat
-}) {
+func NewInputFormatContext(input *IOContext, iFormat *InputFormat) (*FormatContext, error) {
 
 	context := (*FormatContext)(unsafe.Pointer(C.avformat_alloc_context()))
 
 	context.ctype().iformat = iFormat.ctype()
+	context.ctype().pb = input.ctype()
+	context.ctype().flags |= AVFMT_FLAG_CUSTOM_IO
 
 	// C.av_strlcpy(&(context.ctype().filename[0]), C.CString(filename), C.ulong(len(filename)+1))
 	// context.ctype().url = C.av_strdup(C.CString(filename))
@@ -70,6 +74,10 @@ func NewFormatContextInput(input *IOContext, iFormat interface {
 	}
 
 	//call static int update_stream_avctx(AVFormatContext *s)
+}
+
+func (context *FormatContext) StreamExists() bool {
+	return C.avformat_find_stream_info(context.ctype(), nil) >= 0
 }
 
 func (context *FormatContext) Release() {
@@ -129,6 +137,10 @@ func (context *FormatContext) WritePacket(packet *Packet) error {
 		return fmt.Errorf("write packet error, %s", C.av_err(ret))
 	}
 
+	return nil
+}
+
+func (context *FormatContext) Streams() []*Stream {
 	return nil
 }
 

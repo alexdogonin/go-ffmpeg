@@ -141,7 +141,12 @@ func (context *FormatContext) WritePacket(packet *Packet) error {
 }
 
 func (context *FormatContext) Streams() []*Stream {
-	return nil
+	streams := make([]*Stream, context.ctype().nb_streams)
+	for i := 0; i < len(streams); i++ {
+		streams[i] = context.ctype().streams[C.Int(i)]
+	}
+
+	return streams
 }
 
 func (context *FormatContext) ctype() *C.struct_AVFormatContext {

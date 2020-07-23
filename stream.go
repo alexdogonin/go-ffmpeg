@@ -27,6 +27,10 @@ func (s *Stream) SetCodecParameters(parms *CodecParameters) {
 	*(s.ctype().codecpar) = *(parms.ctype())
 }
 
+func (s *Stream) CodecParameters() *CodecParameters {
+	return (*CodecParameters)(unsafe.Pointer(s.ctype().codecpar))
+}
+
 func (s *Stream) TimeBase() Rational {
 	return Rational{int(s.ctype().time_base.num), int(s.ctype().time_base.den)}
 }

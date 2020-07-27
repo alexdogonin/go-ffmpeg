@@ -17,6 +17,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("create io context error, %s", err)
 	}
+	defer ioContext.Release()
 
 	inputFormat, err := ffmpeg.ProbeFormat(ioContext)
 	if err != nil {
@@ -27,6 +28,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("create format context error, %s", err)
 	}
+	// defer formatContext.Close() - duplicated ioContext.Release
+	defer formatContext.Release()
 
 	if !formatContext.StreamExists() {
 		log.Fatal("streams not found")
@@ -42,12 +45,12 @@ func main() {
 
 		p := s.CodecParameters()
 
-		if audioStream == nil && p.CodecType() == ffmpeg.MediaTypeAudio {
+		if audioStream == nil && p.CodecType == ffmpeg.MediaTypeAudio {
 			audioStream = s
 			continue
 		}
 
-		if videoStream == nil && p.CodecType() == ffmpeg.MediaTypeVideo {
+		if videoStream == nil && p.CodecType == ffmpeg.MediaTypeVideo {
 			videoStream = s
 			continue
 		}
@@ -61,28 +64,44 @@ func main() {
 		log.Fatal("video stream not found")
 	}
 
-	videoCodec, err := ffmpeg.CodecByID(videoStream.CodecParameters().CodecID())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	audioCodec, err := ffmpeg.CodecByID(audioStream.CodecParameters().CodecID())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	codecParms := videoStream.CodecParameters()
+	videoCodec, err := ffmpeg.CodecByID(codecParms.CodecID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	videoCodecContext, err := ffmpeg.NewVideoCodecContext(
 		videoCodec,
-		codecParms.Width(),
-		codecParms.Height(),
-		ffmpeg.PixelFormat(codecParms.Format()),
+		codecParms.Width,
+		codecParms.Height,
+		ffmpeg.PixelFormat(codecParms.Format),
 	)
 
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer videoCodecContext.Release()
 
-	codecParms = audioStream.CodecParameters()
-	audioCodecContext, err := ffmpeg.NewAudioCodecContext(audioCodec, )
+	// codecParms = audioStream.CodecParameters()
+	// audioCodec, err := ffmpeg.CodecByID(codecParms.CodecID)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// audioCodecContext, err := ffmpeg.NewAudioCodecContext(
+	// 	audioCodec,
+	// 	codecParms.Bitrate,
+	// 	codecParms.SampleRate,
+	// 	ffmpeg.SampleFormat(codecParms.Format),
+	// 	codecParms.ChannelLayout,
+	// )
+	// defer audioCodecContext.Release()
+
+	frame, err := ffmpeg.NewVideoFrame(codecParms.Width, codecParms.Height, ffmpeg.PixelFormat(codecParms.Format))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer frame.Release()
+
+	formatContext.ReadPacket()
 }

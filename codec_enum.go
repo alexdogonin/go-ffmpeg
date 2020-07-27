@@ -3,7 +3,7 @@ package ffmpeg
 //#include <libavcodec/avcodec.h>
 import "C"
 
-type CodecID C.enum_AVCodecID
+type CodecID int
 
 const (
 	CodecIDH261  CodecID = C.AV_CODEC_ID_H261
@@ -13,3 +13,7 @@ const (
 	CodecIDMp3   CodecID = C.AV_CODEC_ID_MP3
 	CodecIDAAC   CodecID = C.AV_CODEC_ID_AAC
 )
+
+func (cid CodecID) ctype() C.enum_AVCodecID {
+	return (C.enum_AVCodecID)(cid)
+}

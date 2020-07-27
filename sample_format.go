@@ -3,7 +3,7 @@ package ffmpeg
 //#include <libavutil/samplefmt.h>
 import "C"
 
-type SampleFormat C.enum_AVSampleFormat
+type SampleFormat int
 
 const (
 	SampleFormatNone SampleFormat = iota - 1

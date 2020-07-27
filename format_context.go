@@ -101,7 +101,7 @@ func (context *FormatContext) OpenIO() error {
 	return nil
 }
 
-func (context *FormatContext) CloseOutput() {
+func (context *FormatContext) Close() {
 	C.avio_closep(&(context.ctype().pb))
 }
 

@@ -149,6 +149,16 @@ func (context *FormatContext) Streams() []*Stream {
 	return streams
 }
 
+func (context *FormatContext) ReadPacket(packet *Packet) error {
+	ret := C.av_read_frame(context.ctype(), packet.ctype())
+
+	if int(ret) < 0 {
+		return fmt.Errorf("read packet error, %s", C.av_err(ret))
+	}
+
+	return nil
+}
+
 func (context *FormatContext) ctype() *C.struct_AVFormatContext {
 	return (*C.struct_AVFormatContext)(unsafe.Pointer(context))
 }

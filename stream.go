@@ -28,7 +28,40 @@ func (s *Stream) SetCodecParameters(parms *CodecParameters) {
 }
 
 func (s *Stream) CodecParameters() *CodecParameters {
-	return (*CodecParameters)(unsafe.Pointer(s.ctype().codecpar))
+	p := CodecParameters{
+		// (*C.uint8_t)(unsafe.Pointer(&ExtraData[0])): extradata,
+		// C.int(len(ExtraData)):                       extradata_size,
+		ExtraData:          C.GoBytes(s.ctype().codecpar.extradata, s.ctype().codecpar.extradata_size),
+		CodecType:          s.ctype().codecpar.codec_type,
+		CodecID:            s.ctype().codecpar.codec_id,
+		CodecTag:           s.ctype().codecpar.codec_tag,
+		Format:             s.ctype().codecpar.format,
+		Bitrate:            s.ctype().codecpar.bit_rate,
+		BitsPerCodedSample: s.ctype().codecpar.bits_per_coded_sample,
+		BitsPerRawSample:   s.ctype().codecpar.bits_per_raw_sample,
+		Profile:            s.ctype().codecpar.profile,
+		Level:              s.ctype().codecpar.level,
+		Width:              s.ctype().codecpar.width,
+		Height:             s.ctype().codecpar.height,
+		SampleAspectRatio:  s.ctype().codecpar.sample_aspect_ratio,
+		FieldOrder:         s.ctype().codecpar.field_order,
+		ColorRange:         s.ctype().codecpar.color_range,
+		ColorPrimaries:     s.ctype().codecpar.color_primaries,
+		ColorTrc:           s.ctype().codecpar.color_trc,
+		ColorSpace:         s.ctype().codecpar.color_space,
+		ChromaLocation:     s.ctype().codecpar.chroma_location,
+		VideoDelay:         s.ctype().codecpar.video_delay,
+		ChannelLayout:      s.ctype().codecpar.channel_layout,
+		Channels:           s.ctype().codecpar.channels,
+		SampleRate:         s.ctype().codecpar.sample_rate,
+		BlockAlign:         s.ctype().codecpar.block_align,
+		FrameSize:          s.ctype().codecpar.frame_size,
+		InitialPadding:     s.ctype().codecpar.initial_padding,
+		TrailingPadding:    s.ctype().codecpar.trailing_padding,
+		SeekPrerol:         s.ctype().codecpar.seek_preroll,
+	}
+
+	return &p
 }
 
 func (s *Stream) TimeBase() Rational {

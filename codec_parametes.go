@@ -2,7 +2,6 @@ package ffmpeg
 
 //#include <libavcodec/avcodec.h>
 import "C"
-import "unsafe"
 
 type CodecParameters struct {
 	// General type of the encoded data.
@@ -92,7 +91,7 @@ func (parms *CodecParameters) ctype() *C.struct_AVCodecParameters {
 		codec_type:            parms.CodecType.ctype(),
 		codec_id:              parms.CodecID.ctype(),
 		codec_tag:             C.uint32_t(parms.CodecTag),
-		extradata:             C.CBytes(unsafe.Pointer(&parms.ExtraData)),
+		extradata:             (*C.uchar)(C.CBytes(parms.ExtraData)),
 		extradata_size:        C.int(len(parms.ExtraData)),
 		format:                C.int(parms.Format),
 		bit_rate:              C.int64_t(parms.Bitrate),

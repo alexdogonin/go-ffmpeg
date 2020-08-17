@@ -13,9 +13,9 @@ type IOContext C.struct_AVIOContext
 func NewIOContext(filename string) (*IOContext, error) {
 	var context *IOContext
 
-	ret := C.avio_open(&(context.ctype()), C.String(filename), C.AVIO_FLAG_WRITE)
+	ret := C.avio_open(&(context.ctype()), C.CString(filename), C.AVIO_FLAG_WRITE)
 	if ret < 0 {
-		return nil, fmt.Errorf("open %q error, %s", filename, C.av_err(C.int(ret)))
+		return nil, fmt.Errorf("open %q error, %s", filename, Error(C.int(ret)))
 	}
 
 	return context, nil

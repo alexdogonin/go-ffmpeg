@@ -48,9 +48,9 @@ type InputFormat C.struct_AVInputFormat
 func ProbeFormat(ioCtx *IOContext) (*InputFormat, error) {
 	var inputFmt *InputFormat
 
-	ret := C.av_probe_input_buffer2(ioCtx.ctype(), &(inputFmt.ctype()))
+	ret := C.av_probe_input_buffer2(ioCtx.ctype(), (**C.struct_AVInputFormat)(unsafe.Pointer(&inputFmt)), (*C.char)(unsafe.Pointer(&[0]byte{})), nil, 0, 0)
 	if int(ret) < 0 {
-		return nil, errors.New("probe input error")
+		return nil, fmt.Errorf("probe input error, %s", Error(ret))
 	}
 
 	return inputFmt, nil
@@ -59,4 +59,3 @@ func ProbeFormat(ioCtx *IOContext) (*InputFormat, error) {
 func (format *InputFormat) ctype() *C.struct_AVInputFormat {
 	return (*C.struct_AVInputFormat)(unsafe.Pointer(format))
 }
-

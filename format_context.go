@@ -22,6 +22,8 @@ import (
 
 const (
 	AVFMT_FLAG_CUSTOM_IO = 0x0080
+
+	AV_NOPTS_VALUE = C.ulong(0x8000000000000000)
 )
 
 type FormatContext C.struct_AVFormatContext
@@ -59,8 +61,10 @@ func NewInputFormatContext(input *IOContext, iFormat *InputFormat) (*FormatConte
 	// C.av_strlcpy(&(context.ctype().filename[0]), C.CString(filename), C.ulong(len(filename)+1))
 	// context.ctype().url = C.av_strdup(C.CString(filename))
 
-	context.ctype().duration = C.int64(0x8000000000000000)
-	context.ctype().start_time = C.int64(0x8000000000000000)
+	v := AV_NOPTS_VALUE
+
+	context.ctype().duration = *(*C.int64_t)(unsafe.Pointer(&v))
+	context.ctype().start_time = *(*C.int64_t)(unsafe.Pointer(&v))
 
 	context.priv_data = nil
 	if context.iformat.priv_data_size != C.int(0) {
@@ -74,6 +78,9 @@ func NewInputFormatContext(input *IOContext, iFormat *InputFormat) (*FormatConte
 	}
 
 	//call static int update_stream_avctx(AVFormatContext *s)
+
+	panic("not implemented")
+	return nil, nil
 }
 
 func (context *FormatContext) StreamExists() bool {
@@ -93,7 +100,7 @@ func (context *FormatContext) OpenIO() error {
 		return nil
 	}
 
-	ret := C.avio_open(&(context.ctype().pb), &(context.ctype().url), C.AVIO_FLAG_WRITE)
+	ret := C.avio_open(&(context.ctype().pb), context.ctype().url, C.AVIO_FLAG_WRITE)
 	if ret < 0 {
 		return fmt.Errorf("open %q error, %s", context.ctype().filename, C.av_err(C.int(ret)))
 	}
@@ -141,9 +148,14 @@ func (context *FormatContext) WritePacket(packet *Packet) error {
 }
 
 func (context *FormatContext) Streams() []*Stream {
+	var s *C.struct_AVStream
+	streamSize := unsafe.Sizeof(s)
+
+	//TODO simplify it
 	streams := make([]*Stream, context.ctype().nb_streams)
 	for i := 0; i < len(streams); i++ {
-		streams[i] = context.ctype().streams[C.Int(i)]
+		offset := uintptr(i) * streamSize
+		streams[i] = (*Stream)(*(**C.struct_AVStream)(unsafe.Pointer(uintptr(unsafe.Pointer(context.ctype().streams)) + offset)))
 	}
 
 	return streams

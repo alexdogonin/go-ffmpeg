@@ -1,30 +1,67 @@
 package ffmpeg
 
-//#include <libavformat/avio.h>
-//#include <libavutil/error.h>
+/*
+
+#include <libavformat/avio.h>
+
+extern int Read(void *opaque, unsigned char *buff,  int size);
+extern int Write(void *opaque, unsigned char *buff, int size);
+*/
 import "C"
 import (
-	"fmt"
+	"io"
+	"sync"
+	"sync/atomic"
 	"unsafe"
 )
 
-type IOContext C.struct_AVIOContext
+const (
+	bufferSize = 1024
+)
 
-func NewIOContext(filename string) (*IOContext, error) {
-	var context *IOContext
+var contexts = sync.Map{}
+var contextsCounter int32
 
-	ret := C.avio_open(&(context.ctype()), C.CString(filename), C.AVIO_FLAG_WRITE)
-	if ret < 0 {
-		return nil, fmt.Errorf("open %q error, %s", filename, Error(C.int(ret)))
+type IOContext struct {
+	id int
+	r  io.Reader
+	w  io.Writer
+	c  *C.struct_AVIOContext
+}
+
+func NewIOContext(source io.Reader, destination io.Writer) (*IOContext, error) {
+	id := int(atomic.AddInt32(&contextsCounter, 1))
+
+	context := &IOContext{
+		id: id,
+		r:  source,
+		w:  destination,
 	}
+
+	const writable = 1
+	c := C.avio_alloc_context(
+		(*C.uchar)(C.av_malloc(bufferSize)),
+		bufferSize,
+		writable,
+		unsafe.Pointer(&context.id),
+		(*[0]byte)(C.Read),
+		(*[0]byte)(C.Write),
+		nil,
+	)
+
+	context.c = c
+
+	contexts.Store(context.id, context)
 
 	return context, nil
 }
 
-func (context *IOContext) Release() {
-	C.avio_close(context.ctype())
+func (context *IOContext) ctype() *C.struct_AVIOContext {
+	return context.c
 }
 
-func (context *IOContext) ctype() *C.struct_AVIOContext {
-	return (*C.struct_AVIOContext)(unsafe.Pointer(context))
+func (context *IOContext) Release() {
+	C.avio_context_free(&context.c)
+
+	contexts.Delete(context.id)
 }

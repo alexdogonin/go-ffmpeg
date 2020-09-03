@@ -15,10 +15,6 @@ import (
 	"unsafe"
 )
 
-const (
-	bufferSize = 1024
-)
-
 var contexts = sync.Map{}
 var contextsCounter int32
 
@@ -31,6 +27,10 @@ type IOContext struct {
 
 func NewIOContext(source io.Reader, destination io.Writer) (*IOContext, error) {
 	id := int(atomic.AddInt32(&contextsCounter, 1))
+
+	const (
+		bufferSize = 1024
+	)
 
 	context := &IOContext{
 		id: id,

@@ -4,13 +4,13 @@ package ffmpeg
 import "C"
 
 const (
-	MediaTypeUnknown    = int(C.AVMEDIA_TYPE_UNKNOWN)
-	MediaTypeVideo      = int(C.AVMEDIA_TYPE_VIDEO)
-	MediaTypeAudio      = int(C.AVMEDIA_TYPE_AUDIO)
-	MediaTypeData       = int(C.AVMEDIA_TYPE_DATA)
-	MediaTypeSubtitle   = int(C.AVMEDIA_TYPE_SUBTITLE)
-	MediaTypeAttachment = int(C.AVMEDIA_TYPE_ATTACHMENT)
-	MediaTypeNB         = int(C.AVMEDIA_TYPE_NB)
+	MediaTypeUnknown    = MediaType(C.AVMEDIA_TYPE_UNKNOWN)
+	MediaTypeVideo      = MediaType(C.AVMEDIA_TYPE_VIDEO)
+	MediaTypeAudio      = MediaType(C.AVMEDIA_TYPE_AUDIO)
+	MediaTypeData       = MediaType(C.AVMEDIA_TYPE_DATA)
+	MediaTypeSubtitle   = MediaType(C.AVMEDIA_TYPE_SUBTITLE)
+	MediaTypeAttachment = MediaType(C.AVMEDIA_TYPE_ATTACHMENT)
+	MediaTypeNB         = MediaType(C.AVMEDIA_TYPE_NB)
 )
 
 type MediaType int

@@ -106,9 +106,53 @@ func (context *VideoCodecContext) Err() error {
 }
 
 func (context *VideoCodecContext) CodecParameters() *CodecParameters {
-	parms := &CodecParameters{}
+	parms := &CodecParameters{
+		ColorPrimaries:     ColorPrimaries_Unspecified,
+		ColorTrc:           ColorTransferCharacteristic_Unspecified,
+		ColorSpace:         ColorSpace_Unspecified,
+		SampleAspectRatio:  Rational{0, 1},
+		CodecType:          MediaType(context.context.codec_type),
+		CodecID:            CodecID(context.context.codec_id),
+		CodecTag:           uint32(context.context.codec_tag),
+		Bitrate:            int(context.context.bit_rate),
+		BitsPerCodedSample: int(context.context.bits_per_coded_sample),
+		BitsPerRawSample:   int(context.context.bits_per_raw_sample),
+		Profile:            int(context.context.profile),
+		Level:              int(context.context.level),
+		Format:             -1,
+	}
 
-	C.avcodec_parameters_from_context((*C.struct_AVCodecParameters)(unsafe.Pointer(parms)), context.context)
+	switch MediaType(parms.CodecType) {
+	case MediaTypeVideo:
+		parms.Format = int(context.context.pix_fmt)
+		parms.Width = int(context.context.width)
+		parms.Height = int(context.context.height)
+		parms.FieldOrder = FieldOrder(context.context.field_order)
+		parms.ColorRange = ColorRange(context.context.color_range)
+		parms.ColorPrimaries = ColorPrimaries(context.context.color_primaries)
+		parms.ColorTrc = ColorTransferCharacteristic(context.context.color_trc)
+		parms.ColorSpace = ColorSpace(context.context.colorspace)
+		parms.ChromaLocation = ChromaLocation(context.context.chroma_sample_location)
+		parms.SampleAspectRatio = Rational{int(context.context.sample_aspect_ratio.num), int(context.context.sample_aspect_ratio.den)}
+		parms.VideoDelay = int(context.context.has_b_frames)
+	case MediaTypeAudio:
+		parms.Format = int(context.context.sample_fmt)
+		parms.ChannelLayout = ChannelLayout(context.context.channel_layout)
+		parms.Channels = int(context.context.channels)
+		parms.SampleRate = int(context.context.sample_rate)
+		parms.BlockAlign = int(context.context.block_align)
+		parms.FrameSize = int(context.context.frame_size)
+		parms.InitialPadding = int(context.context.initial_padding)
+		parms.TrailingPadding = int(context.context.trailing_padding)
+		parms.SeekPreroll = int(context.context.seek_preroll)
+	case MediaTypeSubtitle:
+		parms.Width = int(context.context.width)
+		parms.Height = int(context.context.height)
+	}
+
+	if context.context.extradata != nil {
+		parms.ExtraData = C.GoBytes(unsafe.Pointer(context.context.extradata), context.context.extradata_size)
+	}
 
 	return parms
 }

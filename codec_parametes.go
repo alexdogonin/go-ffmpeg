@@ -83,7 +83,7 @@ type CodecParameters struct {
 	// audio without any trailing padding.
 	TrailingPadding int
 	// Audio only. Number of samples to skip after a discontinuity.
-	SeekPrerol int
+	SeekPreroll int
 }
 
 func (parms *CodecParameters) ctype() *C.struct_AVCodecParameters {
@@ -91,7 +91,6 @@ func (parms *CodecParameters) ctype() *C.struct_AVCodecParameters {
 		codec_type:            parms.CodecType.ctype(),
 		codec_id:              parms.CodecID.ctype(),
 		codec_tag:             C.uint32_t(parms.CodecTag),
-		extradata:             (*C.uchar)(C.CBytes(parms.ExtraData)),
 		extradata_size:        C.int(len(parms.ExtraData)),
 		format:                C.int(parms.Format),
 		bit_rate:              C.int64_t(parms.Bitrate),
@@ -116,7 +115,14 @@ func (parms *CodecParameters) ctype() *C.struct_AVCodecParameters {
 		frame_size:            C.int(parms.FrameSize),
 		initial_padding:       C.int(parms.InitialPadding),
 		trailing_padding:      C.int(parms.TrailingPadding),
-		seek_preroll:          C.int(parms.SeekPrerol),
+		seek_preroll:          C.int(parms.SeekPreroll),
+	}
+
+	p.extradata = (*C.uchar)(nil)
+	if l := len(parms.ExtraData); l != 0 {
+		// TODO probably memory lick here. check it
+		// should replace to p.extradata = (*C.uchar)(unsafe.Pointer(&parms.ExtraData[0]))
+		p.extradata = (*C.uchar)(C.CBytes(parms.ExtraData))
 	}
 
 	return &p

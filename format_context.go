@@ -28,11 +28,11 @@ const (
 
 type FormatContext C.struct_AVFormatContext
 
-func NewOutputFormatContext(filename string, oFormat *OutputFormat) (*FormatContext, error) {
+func NewOutputFormatContext(output *IOContext, oFormat *OutputFormat) (*FormatContext, error) {
 	context := (*FormatContext)(unsafe.Pointer(C.avformat_alloc_context()))
 
-	C.av_strlcpy(&(context.ctype().filename[0]), C.CString(filename), C.ulong(len(filename)+1))
-	context.url = C.av_strdup(C.CString(filename))
+	// C.av_strlcpy(&(context.ctype().filename[0]), C.CString(filename), C.ulong(len(filename)+1))
+	// context.url = C.av_strdup(C.CString(filename))
 
 	context.oformat = oFormat.ctype()
 
@@ -46,6 +46,8 @@ func NewOutputFormatContext(filename string, oFormat *OutputFormat) (*FormatCont
 			C.av_opt_set_defaults(context.priv_data)
 		}
 	}
+
+	context.ctype().pb = output.ctype()
 
 	return context, nil
 }
@@ -95,22 +97,22 @@ func (context *FormatContext) DumpFormat() {
 	C.av_dump_format(context.ctype(), 0, &(context.ctype().filename[0]), 1)
 }
 
-func (context *FormatContext) OpenIO() error {
-	if (context.ctype().oformat.flags & C.AVFMT_NOFILE) != 0 {
-		return nil
-	}
+// func (context *FormatContext) OpenIO() error {
+// 	if (context.ctype().oformat.flags & C.AVFMT_NOFILE) != 0 {
+// 		return nil
+// 	}
 
-	ret := C.avio_open(&(context.ctype().pb), context.ctype().url, C.AVIO_FLAG_WRITE)
-	if ret < 0 {
-		return fmt.Errorf("open %q error, %s", context.ctype().filename, C.av_err(C.int(ret)))
-	}
+// 	ret := C.avio_open(&(context.ctype().pb), context.ctype().url, C.AVIO_FLAG_WRITE)
+// 	if ret < 0 {
+// 		return fmt.Errorf("open %q error, %s", context.ctype().filename, C.av_err(C.int(ret)))
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (context *FormatContext) Close() {
-	C.avio_closep(&(context.ctype().pb))
-}
+// func (context *FormatContext) Close() {
+// 	C.avio_closep(&(context.ctype().pb))
+// }
 
 func (context *FormatContext) WriteHeader(opts map[string]string) error {
 	// var opt C.struct_AVDictionary

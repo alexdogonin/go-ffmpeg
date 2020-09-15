@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"time"
 
@@ -26,7 +27,18 @@ func main() {
 		log.Fatalf("init format error, %s", err)
 	}
 
-	formatContext, err := ffmpeg.NewFormatContext(fileName, format)
+	f, err := os.Create(fileName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	ioContext, err := ffmpeg.NewIOContext(nil, f)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	formatContext, err := ffmpeg.NewOutputFormatContext(ioContext, format)
 	if err != nil {
 		log.Fatalf("init format context error, %s", err)
 	}
@@ -58,11 +70,6 @@ func main() {
 	defer frame.Release()
 
 	formatContext.DumpFormat()
-
-	if err = formatContext.OpenOutput(); err != nil {
-		log.Fatalf("open output error, %s", err)
-	}
-	defer formatContext.CloseOutput()
 
 	if err = formatContext.WriteHeader(nil); err != nil {
 		log.Fatalf("write header error, %s", err)

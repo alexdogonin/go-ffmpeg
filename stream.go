@@ -29,8 +29,6 @@ func (s *Stream) SetCodecParameters(parms *CodecParameters) {
 
 func (s *Stream) CodecParameters() *CodecParameters {
 	p := CodecParameters{
-		// (*C.uint8_t)(unsafe.Pointer(&ExtraData[0])): extradata,
-		// C.int(len(ExtraData)):                       extradata_size,
 		ExtraData:          C.GoBytes(unsafe.Pointer(s.ctype().codecpar.extradata), s.ctype().codecpar.extradata_size),
 		CodecType:          MediaType(s.ctype().codecpar.codec_type),
 		CodecID:            CodecID(s.ctype().codecpar.codec_id),
@@ -58,7 +56,7 @@ func (s *Stream) CodecParameters() *CodecParameters {
 		FrameSize:          int(s.ctype().codecpar.frame_size),
 		InitialPadding:     int(s.ctype().codecpar.initial_padding),
 		TrailingPadding:    int(s.ctype().codecpar.trailing_padding),
-		SeekPrerol:         int(s.ctype().codecpar.seek_preroll),
+		SeekPreroll:        int(s.ctype().codecpar.seek_preroll),
 	}
 
 	return &p
